@@ -8,6 +8,9 @@ import checker from "vite-plugin-checker";
 import { createHtmlPlugin } from "vite-plugin-html";
 import Sitemap from "vite-plugin-sitemap";
 import { woff2BrowserPlugin } from "../scripts/woff2/woff2-vite-plugins";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
+
 export default defineConfig(({ mode }) => {
   // To load .env variables
   const envVars = loadEnv(mode, `../`);
@@ -77,6 +80,13 @@ export default defineConfig(({ mode }) => {
         },
       ],
     },
+    optimizeDeps: {
+      exclude: [
+        "@myriaddreamin/typst.ts",
+        "@myriaddreamin/typst-ts-renderer",
+        "@myriaddreamin/typst-ts-web-compiler",
+      ],
+    },
     build: {
       outDir: "build",
       rollupOptions: {
@@ -117,6 +127,8 @@ export default defineConfig(({ mode }) => {
         // its static in public folder
         generateRobotsTxt: false,
       }),
+      wasm(),
+      topLevelAwait(),
       woff2BrowserPlugin(),
       react(),
       checker({

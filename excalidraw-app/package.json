@@ -23,10 +23,12 @@
     ]
   },
   "engines": {
-    "node": "18.0.0 - 22.x.x"
+    "node": "18.0.0 - 23.x.x"
   },
   "dependencies": {
     "@excalidraw/random-username": "1.0.0",
+    "@myriaddreamin/typst-ts-renderer": "0.6.1-rc5",
+    "@myriaddreamin/typst-ts-web-compiler": "0.6.1-rc5",
     "@sentry/browser": "9.0.1",
     "callsites": "4.2.0",
     "firebase": "11.3.1",
@@ -51,6 +53,8 @@
     "build:preview": "yarn build && vite preview --port 5000"
   },
   "devDependencies": {
-    "vite-plugin-sitemap": "0.7.1"
+    "vite-plugin-sitemap": "0.7.1",
+    "vite-plugin-top-level-await": "1.6.0",
+    "vite-plugin-wasm": "3.5.0"
   }
 }

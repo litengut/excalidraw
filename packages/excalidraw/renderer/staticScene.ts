@@ -30,6 +30,7 @@ import {
 } from "../components/hyperlink/helpers";
 
 import { bootstrapCanvas, getNormalizedCanvasDimensions } from "./helpers";
+import { getTypstSvg, drawTypstMath } from "../utils/typst";
 
 import type {
   StaticCanvasRenderConfig,
@@ -325,15 +326,35 @@ const _renderStaticScene = ({
             appState,
           );
         } else {
-          renderElement(
-            element,
-            elementsMap,
-            allElementsMap,
-            rc,
-            context,
-            renderConfig,
-            appState,
-          );
+          let rendered = false;
+          if (isTextElement(element) && element.text.match(/^\$\$(.*)\$\$$/s)) {
+            const math = element.text.match(/^\$\$(.*)\$\$$/s)![1];
+            const svg = getTypstSvg(math);
+            if (svg) {
+              drawTypstMath(
+                context,
+                svg,
+                element.x,
+                element.y,
+                element.width,
+                element.height,
+                element.angle,
+                element.opacity,
+              );
+              rendered = true;
+            }
+          }
+          if (!rendered) {
+            renderElement(
+              element,
+              elementsMap,
+              allElementsMap,
+              rc,
+              context,
+              renderConfig,
+              appState,
+            );
+          }
         }
 
         const boundTextElement = getBoundTextElement(element, elementsMap);

@@ -101,6 +101,7 @@ import {
   CLASSES,
   Emitter,
 } from "@excalidraw/common";
+import { addTypstRenderListener } from "../utils/typst";
 
 import {
   getObservedAppState,
@@ -598,6 +599,8 @@ class App extends React.Component<AppProps, AppState> {
   public flowChartCreator: FlowChartCreator = new FlowChartCreator();
   private flowChartNavigator: FlowChartNavigator = new FlowChartNavigator();
 
+  private typstListenerUnsubscribe: (() => void) | null = null;
+
   hitLinkElement?: NonDeletedExcalidrawElement;
   lastPointerDownEvent: React.PointerEvent<HTMLElement> | null = null;
   lastPointerUpEvent: React.PointerEvent<HTMLElement> | PointerEvent | null =
@@ -743,6 +746,10 @@ class App extends React.Component<AppProps, AppState> {
     this.actionManager.registerAll(actions);
     this.actionManager.registerAction(createUndoAction(this.history));
     this.actionManager.registerAction(createRedoAction(this.history));
+
+    this.typstListenerUnsubscribe = addTypstRenderListener(() => {
+      this.scene.triggerUpdate();
+    });
   }
 
   updateEditorAtom = <Value, Args extends unknown[], Result>(
