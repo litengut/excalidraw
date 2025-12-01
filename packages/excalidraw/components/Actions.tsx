@@ -231,6 +231,7 @@ export const SelectedShapeActions = ({
           {(appState.activeTool.type === "text" ||
             suppportsHorizontalAlign(targetElements, elementsMap)) &&
             renderAction("changeTextAlign")}
+          {renderAction("toggleTypst")}
         </>
       )}
 
@@ -856,6 +857,9 @@ export const CompactShapeActions = ({
           <div className="compact-action-item">
             {renderAction("changeFontFamily")}
           </div>
+          <div className="compact-action-item">
+            {renderAction("toggleTypst")}
+          </div>
           <CombinedTextProperties
             appState={appState}
             renderAction={renderAction}
@@ -990,6 +994,9 @@ export const MobileShapeActions = ({
           <>
             <div className="compact-action-item">
               {renderAction("changeFontFamily")}
+            </div>
+            <div className="compact-action-item">
+              {renderAction("toggleTypst")}
             </div>
             <CombinedTextProperties
               appState={appState}

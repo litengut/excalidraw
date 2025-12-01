@@ -28,7 +28,7 @@ import {
   computeBoundTextPosition,
   getBoundTextElement,
 } from "@excalidraw/element";
-import { getTextWidth } from "@excalidraw/element";
+import { getTextWidth, getTextHeight } from "@excalidraw/element";
 import { normalizeText } from "@excalidraw/element";
 import { wrapText } from "@excalidraw/element";
 import {
@@ -153,8 +153,26 @@ export const textWysiwyg = ({
       // what is going to be used for unbounded text
       let height = updatedTextElement.height;
 
+      // For typst elements, calculate text dimensions from the source text
+      // since element dimensions are set to typst output size
+      if (updatedTextElement.isTypst) {
+        const font = getFontString(updatedTextElement);
+        width = getTextWidth(updatedTextElement.originalText, font);
+        height = getTextHeight(
+          updatedTextElement.originalText,
+          updatedTextElement.fontSize,
+          updatedTextElement.lineHeight,
+        );
+      }
+
       let maxWidth = updatedTextElement.width;
       let maxHeight = updatedTextElement.height;
+
+      // For typst elements, use calculated text dimensions for max as well
+      if (updatedTextElement.isTypst) {
+        maxWidth = width;
+        maxHeight = height;
+      }
 
       if (container && updatedTextElement.containerId) {
         if (isArrowElement(container)) {

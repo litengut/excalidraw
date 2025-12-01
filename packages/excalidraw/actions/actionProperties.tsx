@@ -1969,3 +1969,95 @@ export const actionChangeArrowType = register<keyof typeof ARROW_TYPE>({
     );
   },
 });
+
+export const actionToggleTypst = register({
+  name: "toggleTypst",
+  label: "labels.typst",
+  icon: null,
+  trackEvent: { category: "element" },
+  predicate: (elements, appState, _, app) => {
+    const selectedElements = getSelectedElements(
+      getNonDeletedElements(elements),
+      appState,
+      {
+        includeBoundTextElement: true,
+      },
+    );
+    return selectedElements.some((element) => isTextElement(element));
+  },
+  perform: (elements, appState, _, app) => {
+    const selectedElements = getSelectedElements(
+      getNonDeletedElements(elements),
+      appState,
+      {
+        includeBoundTextElement: true,
+      },
+    );
+
+    const textElements = selectedElements.filter(isTextElement);
+
+    if (textElements.length === 0) {
+      return { elements, appState, captureUpdate: CaptureUpdateAction.NEVER };
+    }
+
+    // Toggle typst mode - if any are typst, turn all off; otherwise turn all on
+    const anyIsTypst = textElements.some((el) => el.isTypst);
+    const newIsTypst = !anyIsTypst;
+
+    const newElements = elements.map((element) => {
+      if (
+        isTextElement(element) &&
+        textElements.some((te) => te.id === element.id)
+      ) {
+        return newElementWith(element, { isTypst: newIsTypst });
+      }
+      return element;
+    });
+
+    return {
+      elements: newElements,
+      appState,
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    };
+  },
+  PanelComponent: ({ elements, appState, updateData, app }) => {
+    const selectedElements = getSelectedElements(
+      getNonDeletedElements(elements),
+      appState,
+      {
+        includeBoundTextElement: true,
+      },
+    );
+
+    const textElements = selectedElements.filter(isTextElement);
+
+    if (textElements.length === 0) {
+      return null;
+    }
+
+    const isTypst = textElements.some((el) => el.isTypst);
+
+    return (
+      <fieldset>
+        <legend>{t("labels.typst")}</legend>
+        <div className="buttonList">
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isTypst}
+              onChange={() => updateData(null)}
+            />
+            {t("labels.enableTypst")}
+          </label>
+        </div>
+      </fieldset>
+    );
+  },
+});

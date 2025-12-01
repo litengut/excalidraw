@@ -619,6 +619,10 @@ const renderElementToSvg = (
             offsetY || 0
           }) rotate(${degree} ${cx} ${cy})`,
         );
+
+        // Check if this is a typst element - for SVG export, we'll render as regular text
+        // since we don't have access to the typst cache during export
+        // The canvas render will show the typst output, but SVG export shows source
         const lines = element.text.replace(/\r\n?/g, "\n").split("\n");
         const lineHeightPx = getLineHeightInPx(
           element.fontSize,

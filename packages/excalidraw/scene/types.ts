@@ -36,6 +36,11 @@ export type StaticCanvasRenderConfig = {
   embedsValidationStatus: EmbedsValidationStatus;
   elementsPendingErasure: ElementsPendingErasure;
   pendingFlowchartNodes: PendingExcalidrawElements | null;
+  /** Cache for typst rendered text elements */
+  typstCache?: Map<
+    string,
+    { svg: string; image: HTMLImageElement; width: number; height: number }
+  >;
 };
 
 export type SVGRenderConfig = {

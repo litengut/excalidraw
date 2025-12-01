@@ -95,6 +95,7 @@ export type ActionName =
   | "changeFontFamily"
   | "changeTextAlign"
   | "changeVerticalAlign"
+  | "toggleTypst"
   | "toggleFullScreen"
   | "toggleShortcuts"
   | "group"

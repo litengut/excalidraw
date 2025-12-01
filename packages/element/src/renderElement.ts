@@ -496,6 +496,29 @@ const drawElementOnCanvas = (
     }
     default: {
       if (isTextElement(element)) {
+        // Check if this is a typst element and we have a cached render
+        if (element.isTypst && renderConfig.typstCache) {
+          const cacheKey = `${element.text}__${element.fontSize}__${element.fontFamily}__${element.strokeColor}`;
+          const cached = renderConfig.typstCache.get(cacheKey);
+
+          if (cached && cached.image) {
+            context.save();
+            // Draw the typst rendered image at its original dimensions (no stretching)
+            context.drawImage(
+              cached.image,
+              0,
+              0,
+              cached.width,
+              cached.height,
+            );
+            context.restore();
+          }
+          // For typst elements, don't fall back to text rendering
+          // Just show nothing until cache is ready
+          return;
+        }
+
+        // Normal text rendering (non-typst elements only)
         const rtl = isRTL(element.text);
         const shouldTemporarilyAttach = rtl && !context.canvas.isConnected;
         if (shouldTemporarilyAttach) {

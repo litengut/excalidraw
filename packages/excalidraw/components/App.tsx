@@ -418,6 +418,12 @@ import { EraserTrail } from "../eraser";
 
 import { getShortcutKey } from "../shortcut";
 
+import {
+  renderTypstToSvg,
+  getTypstCacheEntry,
+  clearTypstCache,
+} from "../typst";
+
 import ConvertElementTypePopup, {
   getConversionTypeFromElements,
   convertElementTypePopupAtom,
@@ -615,6 +621,10 @@ class App extends React.Component<AppProps, AppState> {
 
   public files: BinaryFiles = {};
   public imageCache: AppClassProperties["imageCache"] = new Map();
+  public typstCache: Map<
+    string,
+    { svg: string; image: HTMLImageElement; width: number; height: number }
+  > = new Map();
   private iFrameRefs = new Map<ExcalidrawElement["id"], HTMLIFrameElement>();
   /**
    * Indicates whether the embeddable's url has been validated for rendering.
@@ -2116,6 +2126,7 @@ class App extends React.Component<AppProps, AppState> {
                             elementsPendingErasure: this.elementsPendingErasure,
                             pendingFlowchartNodes:
                               this.flowChartCreator.pendingNodes,
+                            typstCache: this.typstCache,
                           }}
                         />
                         {this.state.newElement && (
@@ -2136,6 +2147,7 @@ class App extends React.Component<AppProps, AppState> {
                               elementsPendingErasure:
                                 this.elementsPendingErasure,
                               pendingFlowchartNodes: null,
+                              typstCache: this.typstCache,
                             }}
                           />
                         )}
@@ -3249,6 +3261,9 @@ class App extends React.Component<AppProps, AppState> {
     }
 
     this.store.commit(elementsMap, this.state);
+
+    // Schedule typst cache update for any typst text elements
+    this.scheduleTypstCacheUpdate();
 
     // Do not notify consumers if we're still loading the scene. Among other
     // potential issues, this fixes a case where the tab isn't focused during
@@ -11060,6 +11075,58 @@ class App extends React.Component<AppProps, AppState> {
     this.addNewImagesToImageCache();
   }, IMAGE_RENDER_TIMEOUT);
 
+  /** renders typst text elements and caches them */
+  private updateTypstCache = async () => {
+    const elements = this.scene.getNonDeletedElements();
+    const typstElements: ExcalidrawTextElement[] = [];
+    
+    for (const element of elements) {
+      if (isTextElement(element) && element.isTypst === true) {
+        typstElements.push(element as ExcalidrawTextElement);
+      }
+    }
+
+    if (typstElements.length === 0) {
+      return;
+    }
+
+    let didUpdate = false;
+
+    for (const element of typstElements) {
+      const cacheKey = `${element.text}__${element.fontSize}__${element.fontFamily}__${element.strokeColor}`;
+
+      // Skip if already cached
+      if (this.typstCache.has(cacheKey)) {
+        continue;
+      }
+
+      try {
+        const result = await renderTypstToSvg(element);
+        if (result && !(result.image instanceof Promise)) {
+          this.typstCache.set(cacheKey, {
+            svg: result.svg,
+            image: result.image,
+            width: result.width,
+            height: result.height,
+          });
+          didUpdate = true;
+          ShapeCache.delete(element);
+        }
+      } catch (error) {
+        console.error("Failed to render typst element:", error);
+      }
+    }
+
+    if (didUpdate) {
+      this.scene.triggerUpdate();
+    }
+  };
+
+  /** schedule typst cache update */
+  private scheduleTypstCacheUpdate = throttle(() => {
+    this.updateTypstCache();
+  }, IMAGE_RENDER_TIMEOUT);
+
   private updateBindingEnabledOnPointerMove = (
     event: React.PointerEvent<HTMLElement>,
   ) => {
@@ -11170,7 +11237,8 @@ class App extends React.Component<AppProps, AppState> {
           height,
           fileId,
           status: "saved",
-          locked: true, // Lock the element
+          locked: true,
+          type: "image",
         });
 
         elements.push(imageElement);
@@ -11191,8 +11259,11 @@ class App extends React.Component<AppProps, AppState> {
       // Add files to the file cache
       this.addMissingFiles(Object.values(files));
 
-      // Update image cache
-      await this.updateImageCache(elements);
+      // Update image cache for initialized images only
+      const initializedImageElements = elements.filter(isInitializedImageElement);
+      if (initializedImageElements.length) {
+        await this.updateImageCache(initializedImageElements);
+      }
 
       // Insert all elements
       elements.forEach((el) => this.scene.insertElement(el));

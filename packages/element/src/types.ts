@@ -254,6 +254,13 @@ export type ExcalidrawTextElement = _ExcalidrawElementBase &
      *  with font size (using `getLineHeightInPx` helper).
      */
     lineHeight: number & { _brand: "unitlessLineHeight" };
+    /**
+     * If `true`, the text content is treated as Typst markup and rendered
+     * using the Typst compiler. The rendered output will use the Excalidraw font.
+     *
+     * @default false
+     */
+    isTypst?: boolean;
   }>;
 
 export type ExcalidrawBindableElement =

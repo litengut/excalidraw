@@ -54,6 +54,8 @@
     "arrowtype_sharp": "Sharp arrow",
     "arrowtype_round": "Curved arrow",
     "arrowtype_elbowed": "Elbow arrow",
+    "typst": "Typst",
+    "enableTypst": "Enable Typst rendering",
     "fontSize": "Font size",
     "fontFamily": "Font family",
     "addWatermark": "Add \"Made with Excalidraw\"",
