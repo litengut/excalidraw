@@ -372,6 +372,7 @@ import {
   resizeImageFile,
   SVGStringToFile,
 } from "../data/blob";
+import { convertPDFToImages, isPDFFile } from "../data/pdf";
 
 import { fileOpen } from "../data/filesystem";
 import {
@@ -11117,6 +11118,111 @@ class App extends React.Component<AppProps, AppState> {
       );
     }
   };
+  
+    /**
+   * Converts a PDF file to images and inserts each page as a locked image element
+   */
+  private insertPDFAsImages = async (
+    pdfFile: File,
+    sceneX: number,
+    sceneY: number,
+  ) => {
+    const PAGE_GAP = 40; // Gap between pages
+    const MAX_PAGE_WIDTH = 800; // Maximum width for a page
+
+    try {
+      this.setState({ isLoading: true });
+
+      // Convert PDF pages to images (apply dark mode if theme is dark)
+      const isDarkMode = this.state.theme === THEME.DARK;
+      const pageImages = await convertPDFToImages(pdfFile, {
+        scale: 2,
+        darkMode: isDarkMode,
+        onProgress: (current, total) => {
+          // Could add progress indicator here
+          console.log(`Processing PDF page ${current}/${total}`);
+        },
+      });
+
+      if (pageImages.length === 0) {
+        throw new Error("No pages found in PDF");
+      }
+
+      // Create image elements for each page
+      const elements: ExcalidrawImageElement[] = [];
+      const files: { [key: string]: any } = {};
+
+      let currentY = sceneY;
+
+      for (const pageImage of pageImages) {
+        const fileId = `pdf-page-${nanoid()}` as FileId;
+
+        // Scale down if too wide
+        const scale = Math.min(1, MAX_PAGE_WIDTH / pageImage.width);
+        const width = pageImage.width * scale;
+        const height = pageImage.height * scale;
+
+        // Create the image element - locked so pages can't be accidentally moved
+        const imageElement = newImageElement({
+          x: sceneX,
+          y: currentY,
+          width,
+          height,
+          fileId,
+          status: "saved",
+          locked: true, // Lock the element
+        });
+
+        elements.push(imageElement);
+
+        // Store the file data
+        files[fileId] = {
+          id: fileId,
+          mimeType: "image/png",
+          dataURL: pageImage.dataURL,
+          created: Date.now(),
+          lastRetrieved: Date.now(),
+        };
+
+        // Move Y position for next page
+        currentY += height + PAGE_GAP;
+      }
+
+      // Add files to the file cache
+      this.addMissingFiles(Object.values(files));
+
+      // Update image cache
+      await this.updateImageCache(elements);
+
+      // Insert all elements
+      elements.forEach((el) => this.scene.insertElement(el));
+
+      // Update scene
+      const nextElements = this.scene.getElementsIncludingDeleted();
+
+      this.updateScene({
+        appState: {
+          selectedElementIds: makeNextSelectedElementIds(
+            Object.fromEntries(elements.map((el) => [el.id, true])),
+            this.state,
+          ),
+          isLoading: false,
+        },
+        elements: nextElements,
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+      });
+
+      this.setState({}, () => {
+        this.actionManager.executeAction(actionFinalize);
+      });
+    } catch (error: any) {
+      console.error("Error processing PDF:", error);
+      this.setState({
+        isLoading: false,
+        errorMessage: error.message || "Failed to process PDF file",
+      });
+    }
+  };
 
   private insertImages = async (
     imageFiles: File[],
@@ -11221,6 +11327,14 @@ class App extends React.Component<AppProps, AppState> {
           // if EncodingError, fall through to insert as regular image
         }
       }
+    }
+        // Handle PDF files - convert each page to an image
+    const pdfFiles = fileItems
+      .map((data) => data.file)
+      .filter((file) => isPDFFile(file));
+
+    if (pdfFiles.length > 0 && this.isToolSupported("image")) {
+      return this.insertPDFAsImages(pdfFiles[0], sceneX, sceneY);
     }
 
     const imageFiles = fileItems
